@@ -1,7 +1,8 @@
 import tkinter as tk
 
-from operations import BinaryOperation, UnaryOperation
+from operations import BinaryOperation, UnaryOperation, CalculatorError
 from memory import Memory
+from formatting import format_number
 
 
 # Controller (and view)
@@ -30,6 +31,7 @@ class Calculator:
         self.previous_value = None       # Previous value (for binary operations)
         self.current_operation = None    # Current operation (+, -, etc.)
         self.reset_on_next_input = False # Whether to clear the display on next input
+        self.error_state = False         # True after an invalid operation (e.g. division by zero)
 
         # GUI
         self.display_var = tk.StringVar()
@@ -92,6 +94,13 @@ class Calculator:
             master.rowconfigure(i, weight=1)
 
     def on_button_click(self, value):
+        # While in an error state, only "C" (Clear All) is accepted - everything
+        # else is ignored until the user explicitly clears the calculator.
+        if self.error_state:
+            if value == "C":
+                self.handle_clear(value)
+            return
+
         # Dispatch based on button type
         if value in "0123456789.":
             self.handle_digit(value)
@@ -130,11 +139,15 @@ class Calculator:
                 self.previous_value = current_value
             elif self.current_operation:
                 # Chain: execute the pending operation before starting the next one
-                result = self.operations[self.current_operation].execute(
-                    self.previous_value, current_value
-                )
+                try:
+                    result = self.operations[self.current_operation].execute(
+                        self.previous_value, current_value
+                    )
+                except CalculatorError:
+                    self.show_error()
+                    return
                 self.previous_value = result
-                self.display_var.set(str(result))
+                self.display_var.set(format_number(result))
 
             self.current_operation = operation
             self.reset_on_next_input = True
@@ -143,11 +156,15 @@ class Calculator:
     def handle_equals(self):
         if self.current_input and self.current_operation and self.previous_value is not None:
             current_value = float(self.current_input)
-            result = self.operations[self.current_operation].execute(
-                self.previous_value, current_value
-            )
-            self.display_var.set(str(result))
-            self.current_input = str(result)
+            try:
+                result = self.operations[self.current_operation].execute(
+                    self.previous_value, current_value
+                )
+            except CalculatorError:
+                self.show_error()
+                return
+            self.display_var.set(format_number(result))
+            self.current_input = format_number(result)
             self.previous_value = None
             self.current_operation = None
             self.reset_on_next_input = True
@@ -157,9 +174,13 @@ class Calculator:
         if self.current_input:
             current_value = float(self.current_input)
             # Inheritance and polymorphism at work here
-            result = self.operations[operation].execute(current_value)
-            self.display_var.set(str(result))
-            self.current_input = str(result)
+            try:
+                result = self.operations[operation].execute(current_value)
+            except CalculatorError:
+                self.show_error()
+                return
+            self.display_var.set(format_number(result))
+            self.current_input = format_number(result)
             self.reset_on_next_input = True
 
     # Handles memory operations (MS, MR, MC, M+, M-)
@@ -169,7 +190,7 @@ class Calculator:
             if self.current_input:
                 self.memory.add(float(self.current_input))
         elif operation == "MR":  # Memory Recall
-            self.current_input = str(self.memory.recall())
+            self.current_input = format_number(self.memory.recall())
             self.display_var.set(self.current_input)
         elif operation == "MC":  # Memory Clear
             self.memory.clear()
@@ -189,6 +210,7 @@ class Calculator:
             self.current_input = ""
             self.previous_value = None
             self.current_operation = None
+            self.error_state = False
             self.display_var.set("0")
 
         self.reset_on_next_input = False
@@ -201,3 +223,10 @@ class Calculator:
             else:
                 self.current_input = '-' + self.current_input
             self.display_var.set(self.current_input)
+
+    # Enters the error state: shows "Error" and blocks all input except "C"
+    def show_error(self):
+        self.display_var.set("Error")
+        self.current_input = ""
+        self.error_state = True
+        self.reset_on_next_input = True
