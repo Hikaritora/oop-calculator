@@ -5,10 +5,9 @@ class CalculatorView:
     """
     Tkinter GUI for the calculator.
 
-    Contains no calculation logic - every button press is delegated to the
-    controller, and the display is refreshed by reading the controller's
-    state right after. This keeps the view a "dumb" layer that only knows
-    how to draw widgets and forward events.
+    Every button press goes straight to the controller, then the display
+    is refreshed from whatever the controller returns. No calculation
+    logic lives here.
     """
 
     def __init__(self, master, controller):

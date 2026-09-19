@@ -1,32 +1,33 @@
-from models.operations import BinaryOperation, UnaryOperation, CalculatorError
+from models.operations import (
+    AddOperation, SubtractOperation, MultiplyOperation, DivideOperation,
+    SqrtOperation, SquareOperation, CalculatorError,
+)
 from models.memory import Memory
 from utils.formatting import format_number
 
 
 class CalculatorController:
     """
-    Holds all calculator state and business logic.
+    Owns all calculator state and business logic.
 
-    This class is intentionally framework-agnostic - it has no dependency on
-    Tkinter or any other GUI library. A view calls on_button_press() to send
-    input and get_display_text() to read what should currently be shown.
-    This makes the controller trivial to unit test and reusable behind any
-    view (Tkinter, a web frontend, a CLI, etc.).
+    No Tkinter (or any other GUI) code lives here on purpose - the view calls
+    on_button_press() to send input and get_display_text() to read what
+    should currently be shown. Keeping the two separate makes this class
+    easy to test on its own.
     """
 
     def __init__(self):
         # Composition - the controller owns a Memory
         self.memory = Memory()
 
-        # Operation registry (polymorphism - different operations inherit from Operation)
+        # Operation registry (polymorphism - each operation is its own Operation subclass)
         self.operations = {
-            "+": BinaryOperation("+"),
-            "-": BinaryOperation("-"),
-            "*": BinaryOperation("*"),
-            "/": BinaryOperation("/"),
-            "√": UnaryOperation("sqrt"),
-            "x²": UnaryOperation("square"),
-            "sign": UnaryOperation("sign"),
+            "+": AddOperation(),
+            "-": SubtractOperation(),
+            "*": MultiplyOperation(),
+            "/": DivideOperation(),
+            "√": SqrtOperation(),
+            "x²": SquareOperation(),
         }
 
         # Calculator state
@@ -123,7 +124,6 @@ class CalculatorController:
     def _handle_unary_operation(self, operation):
         if self.current_input:
             current_value = float(self.current_input)
-            # Inheritance and polymorphism at work here
             try:
                 result = self.operations[operation].execute(current_value)
             except CalculatorError:
@@ -145,10 +145,10 @@ class CalculatorController:
             self.memory.clear()
         elif operation == "M+":  # Memory Add
             if self.current_input:
-                self.memory = self.memory + float(self.current_input)
+                self.memory.add(self.memory.recall() + float(self.current_input))
         elif operation == "M-":  # Memory Subtract
             if self.current_input:
-                self.memory = self.memory - float(self.current_input)
+                self.memory.subtract(float(self.current_input))
 
     def _handle_clear(self, clear_type):
         if clear_type == "CE":  # Clear Entry

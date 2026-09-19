@@ -3,48 +3,60 @@ from abc import ABC, abstractmethod
 
 
 class CalculatorError(Exception):
-    """Raised when an operation cannot produce a valid numeric result."""
+    """Raised when an operation can't produce a valid result (e.g. division by zero)."""
     pass
 
 
-# Model
 class Operation(ABC):
+    """Common base for every calculator operation."""
+    pass
+
+
+class BinaryOperation(Operation):
+    """Operation that takes two operands, e.g. addition or division."""
+
     @abstractmethod
-    def execute(self, *args):
+    def execute(self, a, b):
         pass
 
 
-# Model
-class BinaryOperation(Operation):
-    def __init__(self, operation_type):
-        self._operation_type = operation_type
-
-    def execute(self, a, b):
-        if self._operation_type == "+":
-            return a + b
-        elif self._operation_type == "-":
-            return a - b
-        elif self._operation_type == "*":
-            return a * b
-        elif self._operation_type == "/":
-            if b == 0:
-                raise CalculatorError("Cannot divide by zero")
-            return a / b
-        return 0
-
-
-# Model
 class UnaryOperation(Operation):
-    def __init__(self, operation_type):
-        self._operation_type = operation_type
+    """Operation that takes a single operand, e.g. square root."""
 
+    @abstractmethod
     def execute(self, a):
-        if self._operation_type == "sqrt":
-            if a < 0:
-                raise CalculatorError("Cannot take the square root of a negative number")
-            return math.sqrt(a)
-        elif self._operation_type == "square":
-            return a ** 2
-        elif self._operation_type == "sign":
-            return -a
-        return a
+        pass
+
+
+class AddOperation(BinaryOperation):
+    def execute(self, a, b):
+        return a + b
+
+
+class SubtractOperation(BinaryOperation):
+    def execute(self, a, b):
+        return a - b
+
+
+class MultiplyOperation(BinaryOperation):
+    def execute(self, a, b):
+        return a * b
+
+
+class DivideOperation(BinaryOperation):
+    def execute(self, a, b):
+        if b == 0:
+            raise CalculatorError("Cannot divide by zero")
+        return a / b
+
+
+class SqrtOperation(UnaryOperation):
+    def execute(self, a):
+        if a < 0:
+            raise CalculatorError("Cannot take the square root of a negative number")
+        return math.sqrt(a)
+
+
+class SquareOperation(UnaryOperation):
+    def execute(self, a):
+        return a ** 2
