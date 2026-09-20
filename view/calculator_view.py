@@ -6,8 +6,8 @@ class CalculatorView:
     Tkinter GUI for the calculator.
 
     Every button press goes straight to the controller, then the display
-    is refreshed from whatever the controller returns. No calculation
-    logic lives here.
+    is refreshed from whatever the controller returns. There is no calculation
+    logic here.
     """
 
     def __init__(self, master, controller):
@@ -20,7 +20,10 @@ class CalculatorView:
         self.display_var = tk.StringVar()
         self.display_var.set(self.controller.get_display_text())
 
-        self.display = tk.Entry(master, textvariable=self.display_var, justify="right", font=("Arial", 18), bd=10)
+        self.display = tk.Entry(
+            master, textvariable=self.display_var, justify="right",
+            font=("Arial", 18), bd=10, state="readonly",
+        )
         self.display.grid(row=0, column=0, columnspan=5, sticky="nsew", padx=5, pady=5)
 
         # Button definitions with their positions and spans
@@ -76,7 +79,20 @@ class CalculatorView:
         for i in range(1, 7):
             master.rowconfigure(i, weight=1)
 
+        # Keyboard support: digits/operators go through the same handler as
+        # the buttons, Enter and Escape are bound separately since they
+        # don't map to a printable character.
+        master.bind("<Key>", self._on_key_press)
+        master.bind("<Return>", lambda event: self._on_button_click("="))
+        master.bind("<Escape>", lambda event: self._on_button_click("C"))
+
     def _on_button_click(self, value):
         # Forward the event to the controller, then pull the updated display text
         self.controller.on_button_press(value)
         self.display_var.set(self.controller.get_display_text())
+
+    def _on_key_press(self, event):
+        # Only forward keys the calculator actually understands - digits,
+        # the decimal point, and the four basic operators.
+        if event.char in "0123456789.+-*/":
+            self._on_button_click(event.char)
