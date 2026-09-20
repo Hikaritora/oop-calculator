@@ -38,6 +38,7 @@ class CalculatorController:
         self.error_state = False         # True after an invalid operation (e.g. division by zero)
 
         self.display_text = "0"
+        self.expression_text = ""        # Running expression shown above the result, e.g. "5 +"
 
     # --- Public API used by the view ---
 
@@ -69,6 +70,10 @@ class CalculatorController:
     def get_display_text(self):
         """Return the text the view should currently show."""
         return self.display_text
+
+    def get_expression_text(self):
+        """Return the running expression shown above the result, e.g. "5 +"."""
+        return self.expression_text
 
     # --- Internal handlers (not meant to be called directly by the view) ---
 
@@ -103,6 +108,7 @@ class CalculatorController:
                 self.display_text = format_number(result)
 
             self.current_operation = operation
+            self.expression_text = f"{format_number(self.previous_value)} {operation}"
             self.reset_on_next_input = True
 
     def _handle_equals(self):
@@ -119,6 +125,7 @@ class CalculatorController:
             self.current_input = format_number(result)
             self.previous_value = None
             self.current_operation = None
+            self.expression_text = ""
             self.reset_on_next_input = True
 
     def _handle_unary_operation(self, operation):
@@ -160,6 +167,7 @@ class CalculatorController:
             self.current_operation = None
             self.error_state = False
             self.display_text = "0"
+            self.expression_text = ""
 
         self.reset_on_next_input = False
 
@@ -174,6 +182,7 @@ class CalculatorController:
     def _show_error(self):
         """Enter the error state: show "Error" and block all input except "C"."""
         self.display_text = "Error"
+        self.expression_text = ""
         self.current_input = ""
         self.error_state = True
         self.reset_on_next_input = True
