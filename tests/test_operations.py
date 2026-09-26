@@ -7,6 +7,8 @@ from models.operations import (
     DivideOperation,
     SqrtOperation,
     SquareOperation,
+    PercentOperation,
+    ReciprocalOperation,
     CalculatorError,
 )
 
@@ -43,3 +45,16 @@ def test_sqrt_of_negative_number_raises_calculator_error():
 
 def test_square():
     assert SquareOperation().execute(5) == 25
+
+
+def test_percent():
+    assert PercentOperation().execute(50) == 0.5
+
+
+def test_reciprocal():
+    assert ReciprocalOperation().execute(4) == 0.25
+
+
+def test_reciprocal_of_zero_raises_calculator_error():
+    with pytest.raises(CalculatorError):
+        ReciprocalOperation().execute(0)

@@ -60,3 +60,15 @@ class SqrtOperation(UnaryOperation):
 class SquareOperation(UnaryOperation):
     def execute(self, a):
         return a ** 2
+
+
+class PercentOperation(UnaryOperation):
+    def execute(self, a):
+        return a / 100
+
+
+class ReciprocalOperation(UnaryOperation):
+    def execute(self, a):
+        if a == 0:
+            raise CalculatorError("Cannot divide by zero")
+        return 1 / a

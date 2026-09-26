@@ -1,6 +1,9 @@
+import math
+
 from models.operations import (
     AddOperation, SubtractOperation, MultiplyOperation, DivideOperation,
-    SqrtOperation, SquareOperation, CalculatorError,
+    SqrtOperation, SquareOperation, PercentOperation, ReciprocalOperation,
+    CalculatorError,
 )
 from models.memory import Memory
 from utils.formatting import format_number
@@ -28,6 +31,8 @@ class CalculatorController:
             "/": DivideOperation(),
             "√": SqrtOperation(),
             "x²": SquareOperation(),
+            "%": PercentOperation(),
+            "1/x": ReciprocalOperation(),
         }
 
         # Calculator state
@@ -60,12 +65,18 @@ class CalculatorController:
             self._handle_equals()
         elif value in ("C", "CE"):
             self._handle_clear(value)
-        elif value in ("√", "x²"):
+        elif value in ("√", "x²", "%", "1/x"):
             self._handle_unary_operation(value)
         elif value in ("MS", "MR", "MC", "M+", "M-"):
             self._handle_memory(value)
         elif value == "+/-":
             self._handle_sign_change()
+        elif value == "←":
+            self._handle_backspace()
+        elif value == "π":
+            self._handle_constant(math.pi)
+        elif value == "π":
+            self._handle_pi()
 
     def get_display_text(self):
         """Return the text the view should currently show."""
@@ -178,6 +189,23 @@ class CalculatorController:
             else:
                 self.current_input = '-' + self.current_input
             self.display_text = self.current_input
+
+    def _handle_backspace(self):
+        if self.current_input:
+            self.current_input = self.current_input[:-1]
+            self.display_text = self.current_input if self.current_input else "0"
+
+    def _handle_constant(self, value):
+        # Inserts a fixed value (e.g. pi) as if it had just been typed in full.
+        self.current_input = format_number(round(value, 8))
+        self.display_text = self.current_input
+        self.reset_on_next_input = True
+
+    def _handle_pi(self):
+        # Inserts the constant, the same way Memory Recall inserts a stored
+        # value - it doesn't operate on whatever was typed, it replaces it.
+        self.current_input = format_number(round(math.pi, 8))
+        self.display_text = self.current_input
 
     def _show_error(self):
         """Enter the error state: show "Error" and block all input except "C"."""
