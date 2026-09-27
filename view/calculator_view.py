@@ -119,14 +119,19 @@ class CalculatorView:
             ("+/-", 6, 0, 1, 1, "Digit.TButton"),
             ("0", 6, 1, 1, 1, "Digit.TButton"),
             (".", 6, 2, 1, 1, "Digit.TButton"),
-            ("π", 6, 3, 1, 1, "Utility.TButton"),
+            ("x^y", 6, 3, 1, 1, "Utility.TButton"),
             ("=", 6, 4, 1, 1, "Equals.TButton"),
         ]
 
-        # Create buttons
-        for (text, row, col, rowspan, colspan, style_name) in buttons:
-            action = lambda t=text: self._on_button_click(t)
-            btn = ttk.Button(master, text=text, command=action, style=style_name)
+        # Create buttons. The value sent to the controller is always the
+        # button's logical symbol; DISPLAY_OVERRIDES lets a button show a
+        # nicer glyph (e.g. "÷") without touching that underlying value, so
+        # the operations registry and keyboard bindings stay untouched.
+        DISPLAY_OVERRIDES = {"/": "÷"}
+        for (value, row, col, rowspan, colspan, style_name) in buttons:
+            label = DISPLAY_OVERRIDES.get(value, value)
+            action = lambda v=value: self._on_button_click(v)
+            btn = ttk.Button(master, text=label, command=action, style=style_name)
             btn.grid(row=row, column=col, rowspan=rowspan, columnspan=colspan, sticky="nsew", padx=3, pady=3)
 
         # Make columns and rows resize evenly

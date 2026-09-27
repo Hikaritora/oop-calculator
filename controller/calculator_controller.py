@@ -1,9 +1,7 @@
-import math
-
 from models.operations import (
     AddOperation, SubtractOperation, MultiplyOperation, DivideOperation,
     SqrtOperation, SquareOperation, PercentOperation, ReciprocalOperation,
-    CalculatorError,
+    PowerOperation, CalculatorError,
 )
 from models.memory import Memory
 from utils.formatting import format_number
@@ -29,6 +27,7 @@ class CalculatorController:
             "-": SubtractOperation(),
             "*": MultiplyOperation(),
             "/": DivideOperation(),
+            "x^y": PowerOperation(),
             "√": SqrtOperation(),
             "x²": SquareOperation(),
             "%": PercentOperation(),
@@ -59,7 +58,7 @@ class CalculatorController:
         # Dispatch based on button type
         if value in "0123456789.":
             self._handle_digit(value)
-        elif value in "+-*/":
+        elif value in ("+", "-", "*", "/", "x^y"):
             self._handle_operation(value)
         elif value == "=":
             self._handle_equals()
@@ -73,10 +72,6 @@ class CalculatorController:
             self._handle_sign_change()
         elif value == "←":
             self._handle_backspace()
-        elif value == "π":
-            self._handle_constant(math.pi)
-        elif value == "π":
-            self._handle_pi()
 
     def get_display_text(self):
         """Return the text the view should currently show."""
@@ -194,18 +189,6 @@ class CalculatorController:
         if self.current_input:
             self.current_input = self.current_input[:-1]
             self.display_text = self.current_input if self.current_input else "0"
-
-    def _handle_constant(self, value):
-        # Inserts a fixed value (e.g. pi) as if it had just been typed in full.
-        self.current_input = format_number(round(value, 8))
-        self.display_text = self.current_input
-        self.reset_on_next_input = True
-
-    def _handle_pi(self):
-        # Inserts the constant, the same way Memory Recall inserts a stored
-        # value - it doesn't operate on whatever was typed, it replaces it.
-        self.current_input = format_number(round(math.pi, 8))
-        self.display_text = self.current_input
 
     def _show_error(self):
         """Enter the error state: show "Error" and block all input except "C"."""

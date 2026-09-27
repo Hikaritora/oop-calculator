@@ -9,6 +9,7 @@ from models.operations import (
     SquareOperation,
     PercentOperation,
     ReciprocalOperation,
+    PowerOperation,
     CalculatorError,
 )
 
@@ -58,3 +59,17 @@ def test_reciprocal():
 def test_reciprocal_of_zero_raises_calculator_error():
     with pytest.raises(CalculatorError):
         ReciprocalOperation().execute(0)
+
+
+def test_power():
+    assert PowerOperation().execute(2, 10) == 1024
+
+
+def test_power_zero_to_negative_raises_calculator_error():
+    with pytest.raises(CalculatorError):
+        PowerOperation().execute(0, -1)
+
+
+def test_power_negative_base_fractional_exponent_raises_calculator_error():
+    with pytest.raises(CalculatorError):
+        PowerOperation().execute(-8, 0.5)

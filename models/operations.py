@@ -50,6 +50,17 @@ class DivideOperation(BinaryOperation):
         return a / b
 
 
+class PowerOperation(BinaryOperation):
+    def execute(self, a, b):
+        try:
+            result = a ** b
+        except ZeroDivisionError:
+            raise CalculatorError("Cannot raise zero to a negative power")
+        if isinstance(result, complex):
+            raise CalculatorError("Result is not a real number")
+        return result
+
+
 class SqrtOperation(UnaryOperation):
     def execute(self, a):
         if a < 0:
