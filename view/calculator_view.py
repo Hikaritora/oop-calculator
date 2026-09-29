@@ -1,39 +1,31 @@
 import tkinter as tk
 import ttkbootstrap as ttk
 
-# Color palette modeled on a physical desk calculator: a dark LCD-style
-# screen against a warm, neutral plastic body. Button colors are functional,
-# not decorative - a narrow set of tones keeps three tiers apart:
-# secondary (memory), neutral (digits/utility), and the two accents
-# (teal for arithmetic operators, amber for equals).
-BODY_BG = "#E8E6DF"
-SCREEN_BG = "#17201D"
-SCREEN_FG = "#F0C368"
-SCREEN_FG_DIM = "#8A7A57"
-
-NEUTRAL_BG = "#F5F3ED"
-NEUTRAL_BG_ACTIVE = "#ECE8DD"
-NEUTRAL_BG_PRESSED = "#E2DCC9"
-
-SECONDARY_FG = "#8C8A7E"
-SECONDARY_FG_ACTIVE = "#6F6D62"
-
-OPERATOR_BG = "#3D746A"
-OPERATOR_BG_ACTIVE = "#2F5B53"
-OPERATOR_BG_PRESSED = "#254842"
-
-EQUALS_BG = "#E6AA3D"
-EQUALS_BG_ACTIVE = "#D89A2E"
-EQUALS_BG_PRESSED = "#C68B26"
-
-TEXT_DARK = "#22201A"
-TEXT_LIGHT = "#F7F4EC"
-
-DISPLAY_FONT = ("Segoe UI", 34, "normal")
-EXPRESSION_FONT = ("Segoe UI", 13, "normal")
-PRIMARY_FONT = ("Segoe UI", 14, "bold")
-UTILITY_FONT = ("Segoe UI", 12, "normal")
-SECONDARY_FONT = ("Segoe UI", 10, "normal")
+from view.history_view import HistoryView
+from view.theme import (
+    BODY_BG,
+    SCREEN_BG,
+    SCREEN_FG,
+    SCREEN_FG_DIM,
+    NEUTRAL_BG,
+    NEUTRAL_BG_ACTIVE,
+    NEUTRAL_BG_PRESSED,
+    SECONDARY_FG,
+    SECONDARY_FG_ACTIVE,
+    OPERATOR_BG,
+    OPERATOR_BG_ACTIVE,
+    OPERATOR_BG_PRESSED,
+    EQUALS_BG,
+    EQUALS_BG_ACTIVE,
+    EQUALS_BG_PRESSED,
+    TEXT_DARK,
+    TEXT_LIGHT,
+    DISPLAY_FONT,
+    EXPRESSION_FONT,
+    PRIMARY_FONT,
+    UTILITY_FONT,
+    SECONDARY_FONT,
+)
 
 
 class CalculatorView:
@@ -60,6 +52,16 @@ class CalculatorView:
         screen = tk.Frame(master, background=SCREEN_BG)
         screen.grid(row=0, column=0, columnspan=5, sticky="nsew", padx=16, pady=(16, 8))
 
+        # Slim row above the expression with the history link on the left
+        top_row = tk.Frame(screen, background=SCREEN_BG)
+        top_row.pack(fill="x", padx=18, pady=(12, 0))
+
+        history_link = ttk.Label(
+            top_row, text="History", style="HistoryLink.TLabel", cursor="hand2",
+        )
+        history_link.pack(side="left")
+        history_link.bind("<Button-1>", lambda event: self._open_history())
+
         self.expression_var = tk.StringVar()
         self.expression_var.set(self.controller.get_expression_text())
 
@@ -67,7 +69,7 @@ class CalculatorView:
             screen, textvariable=self.expression_var, anchor="e",
             style="Expression.TLabel",
         )
-        self.expression_label.pack(fill="x", padx=18, pady=(14, 2))
+        self.expression_label.pack(fill="x", padx=18, pady=(2, 2))
 
         self.display_var = tk.StringVar()
         self.display_var.set(self.controller.get_display_text())
@@ -159,6 +161,10 @@ class CalculatorView:
             "Expression.TLabel", background=SCREEN_BG, foreground=SCREEN_FG_DIM,
             font=EXPRESSION_FONT,
         )
+        style.configure(
+            "HistoryLink.TLabel", background=SCREEN_BG, foreground=SCREEN_FG_DIM,
+            font=("Segoe UI", 10, "underline"),
+        )
 
         style.configure(
             "Secondary.TButton", background=BODY_BG, foreground=SECONDARY_FG,
@@ -209,6 +215,18 @@ class CalculatorView:
     def _on_button_click(self, value):
         # Forward the event to the controller, then pull the updated display text
         self.controller.on_button_press(value)
+        self.display_var.set(self.controller.get_display_text())
+        self.expression_var.set(self.controller.get_expression_text())
+
+    def _open_history(self):
+        HistoryView(
+            self.master, self.controller.get_history_entries(),
+            on_select=self._on_history_select,
+        )
+
+    def _on_history_select(self, result):
+        # Restoring a result isn't a keypad symbol, so it bypasses on_button_press
+        self.controller.restore_history_result(result)
         self.display_var.set(self.controller.get_display_text())
         self.expression_var.set(self.controller.get_expression_text())
 

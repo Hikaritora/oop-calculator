@@ -4,7 +4,17 @@ from models.operations import (
     PowerOperation, CalculatorError,
 )
 from models.memory import Memory
+from models.history import History
 from utils.formatting import format_number
+
+# How each unary operation's history entry should read, given the operand
+# as an already-formatted string.
+UNARY_HISTORY_FORMATS = {
+    "√": lambda operand: f"√({operand})",
+    "x²": lambda operand: f"{operand}²",
+    "%": lambda operand: f"{operand}%",
+    "1/x": lambda operand: f"1/({operand})",
+}
 
 
 class CalculatorController:
@@ -20,6 +30,7 @@ class CalculatorController:
     def __init__(self):
         # Composition - the controller owns a Memory
         self.memory = Memory()
+        self.history = History()
 
         # Operation registry (polymorphism - each operation is its own Operation subclass)
         self.operations = {
@@ -43,6 +54,7 @@ class CalculatorController:
 
         self.display_text = "0"
         self.expression_text = ""        # Running expression shown above the result, e.g. "5 +"
+        self.full_expression = ""        # Full chain logged to history, e.g. "5 + 3 +"
 
     # --- Public API used by the view ---
 
@@ -81,6 +93,18 @@ class CalculatorController:
         """Return the running expression shown above the result, e.g. "5 +"."""
         return self.expression_text
 
+    def get_history_entries(self):
+        """Return past calculations as a list of (expression, result) pairs."""
+        return self.history.get_all()
+
+    def restore_history_result(self, result):
+        """Use a result from the history as the number currently being entered."""
+        if self.error_state:
+            return
+        self.current_input = result
+        self.display_text = result
+        self.reset_on_next_input = True
+
     # --- Internal handlers (not meant to be called directly by the view) ---
 
     def _handle_digit(self, digit):
@@ -113,6 +137,11 @@ class CalculatorController:
                 self.previous_value = result
                 self.display_text = format_number(result)
 
+            if self.full_expression:
+                self.full_expression += f" {format_number(current_value)} {operation}"
+            else:
+                self.full_expression = f"{format_number(current_value)} {operation}"
+
             self.current_operation = operation
             self.expression_text = f"{format_number(self.previous_value)} {operation}"
             self.reset_on_next_input = True
@@ -127,11 +156,16 @@ class CalculatorController:
             except CalculatorError:
                 self._show_error()
                 return
+            self.history.add(
+                f"{self.full_expression} {format_number(current_value)}",
+                format_number(result),
+            )
             self.display_text = format_number(result)
             self.current_input = format_number(result)
             self.previous_value = None
             self.current_operation = None
             self.expression_text = ""
+            self.full_expression = ""
             self.reset_on_next_input = True
 
     def _handle_unary_operation(self, operation):
@@ -142,6 +176,8 @@ class CalculatorController:
             except CalculatorError:
                 self._show_error()
                 return
+            operand = format_number(current_value)
+            self.history.add(UNARY_HISTORY_FORMATS[operation](operand), format_number(result))
             self.display_text = format_number(result)
             self.current_input = format_number(result)
             self.reset_on_next_input = True
@@ -174,6 +210,7 @@ class CalculatorController:
             self.error_state = False
             self.display_text = "0"
             self.expression_text = ""
+            self.full_expression = ""
 
         self.reset_on_next_input = False
 
@@ -194,6 +231,7 @@ class CalculatorController:
         """Enter the error state: show "Error" and block all input except "C"."""
         self.display_text = "Error"
         self.expression_text = ""
+        self.full_expression = ""
         self.current_input = ""
         self.error_state = True
         self.reset_on_next_input = True
