@@ -7,13 +7,13 @@ from models.memory import Memory
 from models.history import History
 from utils.formatting import format_number
 
-# How each unary operation's history entry should read, given the operand
-# as an already-formatted string.
-UNARY_HISTORY_FORMATS = {
-    "√": lambda operand: f"√({operand})",
-    "x²": lambda operand: f"{operand}²",
-    "%": lambda operand: f"{operand}%",
-    "1/x": lambda operand: f"1/({operand})",
+# How operations are written in the history log
+BINARY_SYMBOLS = {"x^y": "^"}
+UNARY_FORMATS = {
+    "√": "√({})",
+    "x²": "({})²",
+    "%": "{}%",
+    "1/x": "1/({})",
 }
 
 
@@ -21,7 +21,7 @@ class CalculatorController:
     """
     Owns all calculator state and business logic.
 
-    No Tkinter (or any other GUI) code lives here on purpose - the view calls
+    No Tkinter (or any other GUI) code belongs here on purpose - the view calls
     on_button_press() to send input and get_display_text() to read what
     should currently be shown. Keeping the two separate makes this class
     easy to test on its own.
@@ -54,7 +54,7 @@ class CalculatorController:
 
         self.display_text = "0"
         self.expression_text = ""        # Running expression shown above the result, e.g. "5 +"
-        self.full_expression = ""        # Full chain logged to history, e.g. "5 + 3 +"
+        self.chain_text = ""             # Full chain so far for the history log, e.g. "6 + 6"
 
     # --- Public API used by the view ---
 
@@ -125,6 +125,7 @@ class CalculatorController:
 
             if self.previous_value is None:
                 self.previous_value = current_value
+                self.chain_text = format_number(current_value)
             elif self.current_operation:
                 # Chain: execute the pending operation before starting the next one
                 try:
@@ -134,13 +135,13 @@ class CalculatorController:
                 except CalculatorError:
                     self._show_error()
                     return
+                self.chain_text = (
+                    f"{self.chain_text} "
+                    f"{BINARY_SYMBOLS.get(self.current_operation, self.current_operation)} "
+                    f"{format_number(current_value)}"
+                )
                 self.previous_value = result
                 self.display_text = format_number(result)
-
-            if self.full_expression:
-                self.full_expression += f" {format_number(current_value)} {operation}"
-            else:
-                self.full_expression = f"{format_number(current_value)} {operation}"
 
             self.current_operation = operation
             self.expression_text = f"{format_number(self.previous_value)} {operation}"
@@ -157,7 +158,9 @@ class CalculatorController:
                 self._show_error()
                 return
             self.history.add(
-                f"{self.full_expression} {format_number(current_value)}",
+                f"{self.chain_text} "
+                f"{BINARY_SYMBOLS.get(self.current_operation, self.current_operation)} "
+                f"{format_number(current_value)}",
                 format_number(result),
             )
             self.display_text = format_number(result)
@@ -165,7 +168,7 @@ class CalculatorController:
             self.previous_value = None
             self.current_operation = None
             self.expression_text = ""
-            self.full_expression = ""
+            self.chain_text = ""
             self.reset_on_next_input = True
 
     def _handle_unary_operation(self, operation):
@@ -176,8 +179,10 @@ class CalculatorController:
             except CalculatorError:
                 self._show_error()
                 return
-            operand = format_number(current_value)
-            self.history.add(UNARY_HISTORY_FORMATS[operation](operand), format_number(result))
+            self.history.add(
+                UNARY_FORMATS[operation].format(format_number(current_value)),
+                format_number(result),
+            )
             self.display_text = format_number(result)
             self.current_input = format_number(result)
             self.reset_on_next_input = True
@@ -210,7 +215,7 @@ class CalculatorController:
             self.error_state = False
             self.display_text = "0"
             self.expression_text = ""
-            self.full_expression = ""
+            self.chain_text = ""
 
         self.reset_on_next_input = False
 
@@ -231,7 +236,7 @@ class CalculatorController:
         """Enter the error state: show "Error" and block all input except "C"."""
         self.display_text = "Error"
         self.expression_text = ""
-        self.full_expression = ""
+        self.chain_text = ""
         self.current_input = ""
         self.error_state = True
         self.reset_on_next_input = True

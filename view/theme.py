@@ -1,19 +1,14 @@
-# Color palette modeled on a physical desk calculator: a dark LCD-style
-# screen against a warm, neutral plastic body. Button colors are functional,
-# not decorative - a narrow set of tones keeps three tiers apart:
-# secondary (memory), neutral (digits/utility), and the two accents
-# (teal for arithmetic operators, amber for equals).
-BODY_BG = "#E8E6DF"
+# Inspired by a physical desk calculator: warm plastic body,
+# LCD-style screen, and simple functional button colors.
+# Teal marks operators, amber marks equals, neutral tones cover
+# digits and utility buttons, and memory buttons just blend into
+# the body with muted text.
+# The accent colors stay the same in both modes; the body,
+# button text, and screen colors change with the theme.
+
 SCREEN_BG = "#17201D"
 SCREEN_FG = "#F0C368"
 SCREEN_FG_DIM = "#8A7A57"
-
-NEUTRAL_BG = "#F5F3ED"
-NEUTRAL_BG_ACTIVE = "#ECE8DD"
-NEUTRAL_BG_PRESSED = "#E2DCC9"
-
-SECONDARY_FG = "#8C8A7E"
-SECONDARY_FG_ACTIVE = "#6F6D62"
 
 OPERATOR_BG = "#3D746A"
 OPERATOR_BG_ACTIVE = "#2F5B53"
@@ -23,8 +18,36 @@ EQUALS_BG = "#E6AA3D"
 EQUALS_BG_ACTIVE = "#D89A2E"
 EQUALS_BG_PRESSED = "#C68B26"
 
-TEXT_DARK = "#22201A"
 TEXT_LIGHT = "#F7F4EC"
+TEXT_ON_ACCENT = "#22201A"  # always dark - equals' amber background never changes
+
+LIGHT_PALETTE = {
+    "body_bg": "#E8E6DF",
+    "neutral_bg": "#F5F3ED",
+    "neutral_bg_active": "#ECE8DD",
+    "neutral_bg_pressed": "#E2DCC9",
+    "secondary_fg": "#8C8A7E",
+    "secondary_fg_active": "#6F6D62",
+    "text_on_neutral": "#22201A",
+    "screen_bg": "#F5F7F6",
+    "screen_fg": "#1A1F1D",
+    "screen_fg_dim": "#53615C",
+    "screen_select_bg": "#DCE3E0",
+}
+
+DARK_PALETTE = {
+    "body_bg": "#2B2A27",
+    "neutral_bg": "#3A3936",
+    "neutral_bg_active": "#454440",
+    "neutral_bg_pressed": "#504F4A",
+    "secondary_fg": "#8A887E",
+    "secondary_fg_active": "#B0AEA0",
+    "text_on_neutral": "#EDEAE0",
+    "screen_bg": SCREEN_BG,
+    "screen_fg": SCREEN_FG,
+    "screen_fg_dim": SCREEN_FG_DIM,
+    "screen_select_bg": SCREEN_FG_DIM,
+}
 
 DISPLAY_FONT = ("Segoe UI", 34, "normal")
 EXPRESSION_FONT = ("Segoe UI", 13, "normal")

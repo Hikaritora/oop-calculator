@@ -1,6 +1,8 @@
 import tkinter as tk
 
-from view.theme import SCREEN_BG, SCREEN_FG, SCREEN_FG_DIM, BODY_BG, EXPRESSION_FONT
+from view.theme import LIGHT_PALETTE, EXPRESSION_FONT
+
+BODY_BG = LIGHT_PALETTE["body_bg"]
 
 
 class HistoryView:
@@ -9,9 +11,11 @@ class HistoryView:
 
     Picking an entry hands its result to the on_select callback and closes
     the window. The list is a snapshot taken when the window opens.
+    The list colors follow the palette passed in, so it matches the
+    calculator screen in both light and dark mode.
     """
 
-    def __init__(self, master, entries, on_select):
+    def __init__(self, master, entries, on_select, palette=LIGHT_PALETTE):
         self.on_select = on_select
         # Only the result is restored, so keep it next to the text shown for each row
         self.results = [result for _, result in reversed(entries)]
@@ -25,20 +29,21 @@ class HistoryView:
         if not entries:
             tk.Label(
                 self.window, text="No calculations yet", background=BODY_BG,
-                foreground=SCREEN_FG_DIM, font=EXPRESSION_FONT,
+                foreground=palette["screen_fg_dim"], font=EXPRESSION_FONT,
             ).pack(expand=True)
             return
 
-        frame = tk.Frame(self.window, background=SCREEN_BG)
+        frame = tk.Frame(self.window, background=palette["screen_bg"])
         frame.pack(fill="both", expand=True, padx=12, pady=12)
 
         scrollbar = tk.Scrollbar(frame)
         scrollbar.pack(side="right", fill="y")
 
         self.listbox = tk.Listbox(
-            frame, yscrollcommand=scrollbar.set, background=SCREEN_BG,
-            foreground=SCREEN_FG, font=EXPRESSION_FONT, activestyle="none",
-            selectbackground=SCREEN_FG_DIM, selectforeground=SCREEN_FG,
+            frame, yscrollcommand=scrollbar.set, background=palette["screen_bg"],
+            foreground=palette["screen_fg"], font=EXPRESSION_FONT, activestyle="none",
+            selectbackground=palette["screen_select_bg"],
+            selectforeground=palette["screen_fg"],
             borderwidth=0, highlightthickness=0, relief="flat",
         )
         self.listbox.pack(side="left", fill="both", expand=True, padx=(8, 0), pady=8)

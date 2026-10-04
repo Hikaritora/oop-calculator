@@ -3,23 +3,16 @@ import ttkbootstrap as ttk
 
 from view.history_view import HistoryView
 from view.theme import (
-    BODY_BG,
-    SCREEN_BG,
-    SCREEN_FG,
-    SCREEN_FG_DIM,
-    NEUTRAL_BG,
-    NEUTRAL_BG_ACTIVE,
-    NEUTRAL_BG_PRESSED,
-    SECONDARY_FG,
-    SECONDARY_FG_ACTIVE,
     OPERATOR_BG,
     OPERATOR_BG_ACTIVE,
     OPERATOR_BG_PRESSED,
     EQUALS_BG,
     EQUALS_BG_ACTIVE,
     EQUALS_BG_PRESSED,
-    TEXT_DARK,
     TEXT_LIGHT,
+    TEXT_ON_ACCENT,
+    LIGHT_PALETTE,
+    DARK_PALETTE,
     DISPLAY_FONT,
     EXPRESSION_FONT,
     PRIMARY_FONT,
@@ -40,20 +33,23 @@ class CalculatorView:
     def __init__(self, master, controller):
         self.master = master
         self.controller = controller
+        self.dark_mode = False
 
         master.title("Calculator")
         master.geometry("340x520")
-        master.configure(background=BODY_BG)
 
         self._setup_styles()
 
         # Screen panel - a dark frame holding the expression and display,
         # framed like the LCD window on a real calculator.
-        screen = tk.Frame(master, background=SCREEN_BG)
+        palette = self._active_palette()
+        self.screen = tk.Frame(master, background=palette["screen_bg"])
+        screen = self.screen
         screen.grid(row=0, column=0, columnspan=5, sticky="nsew", padx=16, pady=(16, 8))
 
         # Slim row above the expression with the history link on the left
-        top_row = tk.Frame(screen, background=SCREEN_BG)
+        self.top_row = tk.Frame(screen, background=palette["screen_bg"])
+        top_row = self.top_row
         top_row.pack(fill="x", padx=18, pady=(12, 0))
 
         history_link = ttk.Label(
@@ -61,6 +57,12 @@ class CalculatorView:
         )
         history_link.pack(side="left")
         history_link.bind("<Button-1>", lambda event: self._open_history())
+
+        self.theme_toggle = ttk.Label(
+            top_row, text="☾", style="HistoryLink.TLabel", cursor="hand2",
+        )
+        self.theme_toggle.pack(side="right")
+        self.theme_toggle.bind("<Button-1>", lambda event: self._toggle_dark_mode())
 
         self.expression_var = tk.StringVar()
         self.expression_var.set(self.controller.get_expression_text())
@@ -76,8 +78,9 @@ class CalculatorView:
 
         self.display = tk.Entry(
             screen, textvariable=self.display_var, justify="right",
-            state="readonly", readonlybackground=SCREEN_BG, fg=SCREEN_FG,
-            insertbackground=SCREEN_FG, font=DISPLAY_FONT,
+            state="readonly", readonlybackground=palette["screen_bg"],
+            fg=palette["screen_fg"], insertbackground=palette["screen_fg"],
+            font=DISPLAY_FONT,
             borderwidth=0, highlightthickness=0, relief="flat", takefocus=0,
         )
         self.display.pack(fill="x", padx=18, pady=(4, 16))
@@ -150,48 +153,54 @@ class CalculatorView:
         master.bind("<Escape>", lambda event: self._on_button_click("C"))
         master.bind("<BackSpace>", lambda event: self._on_button_click("←"))
 
+    def _active_palette(self):
+        return DARK_PALETTE if self.dark_mode else LIGHT_PALETTE
+
     def _setup_styles(self):
-        # All the visual choices (colors, fonts) live here, in one place,
+        # All the visual choices (colors, fonts) belong here, in one place,
         # rather than scattered across each widget's constructor. Pressed
         # state is listed before active/hover in each map, since ttk applies
         # the first matching state spec and pressed is the more specific one.
+        palette = self._active_palette()
+        self.master.configure(background=palette["body_bg"])
+
         style = ttk.Style()
 
         style.configure(
-            "Expression.TLabel", background=SCREEN_BG, foreground=SCREEN_FG_DIM,
-            font=EXPRESSION_FONT,
+            "Expression.TLabel", background=palette["screen_bg"],
+            foreground=palette["screen_fg_dim"], font=EXPRESSION_FONT,
         )
         style.configure(
-            "HistoryLink.TLabel", background=SCREEN_BG, foreground=SCREEN_FG_DIM,
-            font=("Segoe UI", 10, "underline"),
+            "HistoryLink.TLabel", background=palette["screen_bg"],
+            foreground=palette["screen_fg_dim"], font=("Segoe UI", 10),
         )
 
         style.configure(
-            "Secondary.TButton", background=BODY_BG, foreground=SECONDARY_FG,
+            "Secondary.TButton", background=palette["body_bg"], foreground=palette["secondary_fg"],
             font=SECONDARY_FONT, borderwidth=0, focusthickness=0, padding=5,
         )
         style.map(
             "Secondary.TButton",
-            background=[("pressed", BODY_BG), ("active", BODY_BG)],
-            foreground=[("pressed", SECONDARY_FG_ACTIVE), ("active", SECONDARY_FG_ACTIVE)],
+            background=[("pressed", palette["body_bg"]), ("active", palette["body_bg"])],
+            foreground=[("pressed", palette["secondary_fg_active"]), ("active", palette["secondary_fg_active"])],
         )
 
         style.configure(
-            "Utility.TButton", background=NEUTRAL_BG, foreground=TEXT_DARK,
+            "Utility.TButton", background=palette["neutral_bg"], foreground=palette["text_on_neutral"],
             font=UTILITY_FONT, borderwidth=0, focusthickness=0, padding=8,
         )
         style.map(
             "Utility.TButton",
-            background=[("pressed", NEUTRAL_BG_PRESSED), ("active", NEUTRAL_BG_ACTIVE)],
+            background=[("pressed", palette["neutral_bg_pressed"]), ("active", palette["neutral_bg_active"])],
         )
 
         style.configure(
-            "Digit.TButton", background=NEUTRAL_BG, foreground=TEXT_DARK,
+            "Digit.TButton", background=palette["neutral_bg"], foreground=palette["text_on_neutral"],
             font=PRIMARY_FONT, borderwidth=0, focusthickness=0, padding=8,
         )
         style.map(
             "Digit.TButton",
-            background=[("pressed", NEUTRAL_BG_PRESSED), ("active", NEUTRAL_BG_ACTIVE)],
+            background=[("pressed", palette["neutral_bg_pressed"]), ("active", palette["neutral_bg_active"])],
         )
 
         style.configure(
@@ -204,12 +213,28 @@ class CalculatorView:
         )
 
         style.configure(
-            "Equals.TButton", background=EQUALS_BG, foreground=TEXT_DARK,
+            "Equals.TButton", background=EQUALS_BG, foreground=TEXT_ON_ACCENT,
             font=PRIMARY_FONT, borderwidth=0, focusthickness=0, padding=8,
         )
         style.map(
             "Equals.TButton",
             background=[("pressed", EQUALS_BG_PRESSED), ("active", EQUALS_BG_ACTIVE)],
+        )
+
+    def _toggle_dark_mode(self):
+        self.dark_mode = not self.dark_mode
+        self.theme_toggle.config(text="☀" if self.dark_mode else "☾")
+        self._setup_styles()
+        self._apply_screen_colors()
+
+    def _apply_screen_colors(self):
+        # tk (non-ttk) widgets don't follow ttk styles, so recolor them by hand
+        palette = self._active_palette()
+        self.screen.configure(background=palette["screen_bg"])
+        self.top_row.configure(background=palette["screen_bg"])
+        self.display.configure(
+            readonlybackground=palette["screen_bg"], fg=palette["screen_fg"],
+            insertbackground=palette["screen_fg"],
         )
 
     def _on_button_click(self, value):
@@ -221,7 +246,7 @@ class CalculatorView:
     def _open_history(self):
         HistoryView(
             self.master, self.controller.get_history_entries(),
-            on_select=self._on_history_select,
+            on_select=self._on_history_select, palette=self._active_palette(),
         )
 
     def _on_history_select(self, result):
