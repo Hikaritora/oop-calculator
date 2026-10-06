@@ -19,7 +19,7 @@ EQUALS_BG_ACTIVE = "#D89A2E"
 EQUALS_BG_PRESSED = "#C68B26"
 
 TEXT_LIGHT = "#F7F4EC"
-TEXT_ON_ACCENT = "#22201A"  # always dark - equals' amber background never changes
+TEXT_ON_ACCENT = "#22201A"  # always dark, since the amber behind it never changes
 
 LIGHT_PALETTE = {
     "body_bg": "#E8E6DF",
@@ -49,7 +49,10 @@ DARK_PALETTE = {
     "screen_select_bg": SCREEN_FG_DIM,
 }
 
-DISPLAY_FONT = ("Segoe UI", 34, "normal")
+# The result font shrinks from MAX towards MIN as the number gets longer
+DISPLAY_FONT_FAMILY = "Segoe UI"
+DISPLAY_FONT_MAX_SIZE = 34
+DISPLAY_FONT_MIN_SIZE = 16
 EXPRESSION_FONT = ("Segoe UI", 13, "normal")
 PRIMARY_FONT = ("Segoe UI", 14, "bold")
 UTILITY_FONT = ("Segoe UI", 12, "normal")

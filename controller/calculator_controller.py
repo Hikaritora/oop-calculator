@@ -5,7 +5,9 @@ from models.operations import (
 )
 from models.memory import Memory
 from models.history import History
-from utils.formatting import format_number
+from utils.formatting import format_number, group_digits, group_expression
+
+DIGIT_KEYS = tuple("0123456789.")
 
 # How operations are written in the history log
 BINARY_SYMBOLS = {"x^y": "^"}
@@ -21,18 +23,17 @@ class CalculatorController:
     """
     Owns all calculator state and business logic.
 
-    No Tkinter (or any other GUI) code belongs here on purpose - the view calls
+    No Tkinter (or any other GUI) code belongs here on purpose: the view calls
     on_button_press() to send input and get_display_text() to read what
     should currently be shown. Keeping the two separate makes this class
     easy to test on its own.
     """
 
     def __init__(self):
-        # Composition - the controller owns a Memory
         self.memory = Memory()
         self.history = History()
 
-        # Operation registry (polymorphism - each operation is its own Operation subclass)
+        # Each operation is its own Operation subclass, looked up by its button symbol
         self.operations = {
             "+": AddOperation(),
             "-": SubtractOperation(),
@@ -45,30 +46,31 @@ class CalculatorController:
             "1/x": ReciprocalOperation(),
         }
 
-        # Calculator state
         self.current_input = ""          # Number currently being typed (as string)
         self.previous_value = None       # Previous value (for binary operations)
         self.current_operation = None    # Current operation (+, -, etc.)
         self.reset_on_next_input = False # Whether to clear the display on next input
+        self.awaiting_operand = False    # True right after an operator key, until the next number is entered
         self.error_state = False         # True after an invalid operation (e.g. division by zero)
 
         self.display_text = "0"
         self.expression_text = ""        # Running expression shown above the result, e.g. "5 +"
         self.chain_text = ""             # Full chain so far for the history log, e.g. "6 + 6"
 
-    # --- Public API used by the view ---
-
     def on_button_press(self, value):
         """Handle a single button press and update internal state accordingly."""
-        # While in an error state, only "C" (Clear All) is accepted - everything
-        # else is ignored until the user explicitly clears the calculator.
+        # While in an error state only "C" works; everything else is ignored
+        # until the user clears it.
         if self.error_state:
             if value == "C":
                 self._handle_clear(value)
             return
 
-        # Dispatch based on button type
-        if value in "0123456789.":
+        # Any key other than an operator means the user has moved on from the last one
+        if value not in ("+", "-", "*", "/", "x^y"):
+            self.awaiting_operand = False
+
+        if value in DIGIT_KEYS:
             self._handle_digit(value)
         elif value in ("+", "-", "*", "/", "x^y"):
             self._handle_operation(value)
@@ -86,16 +88,24 @@ class CalculatorController:
             self._handle_backspace()
 
     def get_display_text(self):
-        """Return the text the view should currently show."""
-        return self.display_text
+        """Return the text the view should currently show (digits grouped in thousands)."""
+        return group_digits(self.display_text)
 
     def get_expression_text(self):
         """Return the running expression shown above the result, e.g. "5 +"."""
-        return self.expression_text
+        return group_expression(self.expression_text)
+
+    def has_memory(self):
+        """Return True while the memory holds a non-zero value (drives the "M" indicator)."""
+        return self.memory.recall() != 0
 
     def get_history_entries(self):
         """Return past calculations as a list of (expression, result) pairs."""
         return self.history.get_all()
+
+    def clear_history(self):
+        """Forget all past calculations."""
+        self.history.clear()
 
     def restore_history_result(self, result):
         """Use a result from the history as the number currently being entered."""
@@ -104,15 +114,13 @@ class CalculatorController:
         self.current_input = result
         self.display_text = result
         self.reset_on_next_input = True
-
-    # --- Internal handlers (not meant to be called directly by the view) ---
+        self.awaiting_operand = False
 
     def _handle_digit(self, digit):
         if self.reset_on_next_input:
             self.current_input = ""
             self.reset_on_next_input = False
 
-        # Prevent multiple decimal points
         if digit == "." and "." in self.current_input:
             return
 
@@ -120,6 +128,12 @@ class CalculatorController:
         self.display_text = self.current_input
 
     def _handle_operation(self, operation):
+        if self.awaiting_operand and self.current_operation:
+            # Operator pressed twice in a row: swap the pending one instead of calculating
+            self.current_operation = operation
+            self.expression_text = f"{format_number(self.previous_value)} {operation}"
+            return
+
         if self.current_input:
             current_value = float(self.current_input)
 
@@ -132,8 +146,8 @@ class CalculatorController:
                     result = self.operations[self.current_operation].execute(
                         self.previous_value, current_value
                     )
-                except CalculatorError:
-                    self._show_error()
+                except CalculatorError as error:
+                    self._show_error(str(error))
                     return
                 self.chain_text = (
                     f"{self.chain_text} "
@@ -146,6 +160,7 @@ class CalculatorController:
             self.current_operation = operation
             self.expression_text = f"{format_number(self.previous_value)} {operation}"
             self.reset_on_next_input = True
+            self.awaiting_operand = True
 
     def _handle_equals(self):
         if self.current_input and self.current_operation and self.previous_value is not None:
@@ -154,8 +169,8 @@ class CalculatorController:
                 result = self.operations[self.current_operation].execute(
                     self.previous_value, current_value
                 )
-            except CalculatorError:
-                self._show_error()
+            except CalculatorError as error:
+                self._show_error(str(error))
                 return
             self.history.add(
                 f"{self.chain_text} "
@@ -176,8 +191,8 @@ class CalculatorController:
             current_value = float(self.current_input)
             try:
                 result = self.operations[operation].execute(current_value)
-            except CalculatorError:
-                self._show_error()
+            except CalculatorError as error:
+                self._show_error(str(error))
                 return
             self.history.add(
                 UNARY_FORMATS[operation].format(format_number(current_value)),
@@ -188,19 +203,19 @@ class CalculatorController:
             self.reset_on_next_input = True
 
     def _handle_memory(self, operation):
-        # Composition - delegates to the Memory object
-        if operation == "MS":  # Memory Store
+        # MS = store, MR = recall, MC = clear, M+ / M- = add to / subtract from memory
+        if operation == "MS":
             if self.current_input:
-                self.memory.add(float(self.current_input))
-        elif operation == "MR":  # Memory Recall
+                self.memory.store(float(self.current_input))
+        elif operation == "MR":
             self.current_input = format_number(self.memory.recall())
             self.display_text = self.current_input
-        elif operation == "MC":  # Memory Clear
+        elif operation == "MC":
             self.memory.clear()
-        elif operation == "M+":  # Memory Add
+        elif operation == "M+":
             if self.current_input:
-                self.memory.add(self.memory.recall() + float(self.current_input))
-        elif operation == "M-":  # Memory Subtract
+                self.memory.store(self.memory.recall() + float(self.current_input))
+        elif operation == "M-":
             if self.current_input:
                 self.memory.subtract(float(self.current_input))
 
@@ -232,11 +247,12 @@ class CalculatorController:
             self.current_input = self.current_input[:-1]
             self.display_text = self.current_input if self.current_input else "0"
 
-    def _show_error(self):
-        """Enter the error state: show "Error" and block all input except "C"."""
+    def _show_error(self, message="Error"):
+        """Enter the error state: show "Error" with the reason above it, and block all input except "C"."""
         self.display_text = "Error"
-        self.expression_text = ""
+        self.expression_text = message
         self.chain_text = ""
         self.current_input = ""
         self.error_state = True
         self.reset_on_next_input = True
+        self.awaiting_operand = False

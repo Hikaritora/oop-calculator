@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from view.theme import LIGHT_PALETTE, EXPRESSION_FONT
+from view.theme import LIGHT_PALETTE, EXPRESSION_FONT, SECONDARY_FONT
 
 BODY_BG = LIGHT_PALETTE["body_bg"]
 
@@ -10,13 +10,15 @@ class HistoryView:
     Small popup listing past calculations, newest first.
 
     Picking an entry hands its result to the on_select callback and closes
-    the window. The list is a snapshot taken when the window opens.
+    the window. The list is a snapshot taken when the window opens, and
+    "Clear history" empties it through the on_clear callback.
     The list colors follow the palette passed in, so it matches the
     calculator screen in both light and dark mode.
     """
 
-    def __init__(self, master, entries, on_select, palette=LIGHT_PALETTE):
+    def __init__(self, master, entries, on_select, on_clear, palette=LIGHT_PALETTE):
         self.on_select = on_select
+        self.on_clear = on_clear
         # Only the result is restored, so keep it next to the text shown for each row
         self.results = [result for _, result in reversed(entries)]
 
@@ -32,6 +34,15 @@ class HistoryView:
                 foreground=palette["screen_fg_dim"], font=EXPRESSION_FONT,
             ).pack(expand=True)
             return
+
+        # Packed before the list so it keeps its spot at the bottom of the window
+        self.clear_label = tk.Label(
+            self.window, text="Clear history", background=BODY_BG,
+            foreground=LIGHT_PALETTE["secondary_fg_active"], font=SECONDARY_FONT,
+            cursor="hand2",
+        )
+        self.clear_label.pack(side="bottom", pady=(0, 10))
+        self.clear_label.bind("<Button-1>", self._on_clear)
 
         frame = tk.Frame(self.window, background=palette["screen_bg"])
         frame.pack(fill="both", expand=True, padx=12, pady=12)
@@ -54,6 +65,12 @@ class HistoryView:
             self.listbox.insert("end", f"{expression.replace('/', '÷')} = {result}")
 
         self.listbox.bind("<<ListboxSelect>>", self._on_pick)
+
+    def _on_clear(self, event):
+        self.on_clear()
+        self.listbox.delete(0, "end")
+        self.results = []
+        self.clear_label.pack_forget()
 
     def _on_pick(self, event):
         selection = self.listbox.curselection()

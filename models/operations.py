@@ -55,7 +55,9 @@ class PowerOperation(BinaryOperation):
         try:
             result = a ** b
         except ZeroDivisionError:
-            raise CalculatorError("Cannot raise zero to a negative power")
+            raise CalculatorError("Zero to a negative power")
+        except OverflowError:
+            raise CalculatorError("Result is too large")
         if isinstance(result, complex):
             raise CalculatorError("Result is not a real number")
         return result
@@ -64,7 +66,7 @@ class PowerOperation(BinaryOperation):
 class SqrtOperation(UnaryOperation):
     def execute(self, a):
         if a < 0:
-            raise CalculatorError("Cannot take the square root of a negative number")
+            raise CalculatorError("No real square root")
         return math.sqrt(a)
 
 

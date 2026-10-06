@@ -73,3 +73,8 @@ def test_power_zero_to_negative_raises_calculator_error():
 def test_power_negative_base_fractional_exponent_raises_calculator_error():
     with pytest.raises(CalculatorError):
         PowerOperation().execute(-8, 0.5)
+
+
+def test_power_overflow_raises_calculator_error():
+    with pytest.raises(CalculatorError):
+        PowerOperation().execute(10.0, 1000.0)
